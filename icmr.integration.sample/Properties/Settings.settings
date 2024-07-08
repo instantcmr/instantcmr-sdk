@@ -1,0 +1,27 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Icmr.Samples.Integration.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="dpatRoot" Type="System.String" Scope="User">
+      <Value Profile="(Default)">./downloads/</Value>
+    </Setting>
+    <Setting Name="kid" Type="System.String" Scope="User">
+      <Value Profile="(Default)">gqdfrYj0o9uIIiIS7ZhLuQ</Value>
+    </Setting>
+    <Setting Name="shs" Type="System.String" Scope="User">
+      <Value Profile="(Default)">vjISm4YH-7AwxeIUd-SmfvZ9h6189brYUW7NKng7DC8</Value>
+    </Setting>
+    <Setting Name="loglevel" Type="Icmr.Integration.Severity" Scope="User">
+      <Value Profile="(Default)">VERBOSE</Value>
+    </Setting>
+    <Setting Name="copid" Type="System.String" Scope="User">
+      <Value Profile="(Default)">dev</Value>
+    </Setting>
+    <Setting Name="iepn" Type="System.String" Scope="User">
+      <Value Profile="(Default)">dub</Value>
+    </Setting>
+    <Setting Name="url" Type="System.String" Scope="User">
+      <Value Profile="(Default)">http://localhost:8080/v3/igr/</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
