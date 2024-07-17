@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -118,9 +117,6 @@ namespace Icmr.Integration
             Array.Copy(rg, rgT, rg.Length);
             return rgT;
         }
-
-        public static Dictionary<K, V> ToDictionary<K, V>(this IEnumerable<KeyValuePair<K, V>> enkv) =>
-            enkv.ToDictionary(kv => kv.Key, kv => kv.Value);
     }
 
     public static class Mpu
@@ -364,7 +360,7 @@ namespace Icmr.Integration
                     l.E($"received {er.ust()}, will retry after {msDelay / 1000}s...");
                 }
 
-                await TaskEx.Delay(msDelay, ctok);
+                await Task.Delay(msDelay, ctok);
                 msDelay = Math.Min(msDelay * 2, 60000);
                 l.I($"retrying...");
             }

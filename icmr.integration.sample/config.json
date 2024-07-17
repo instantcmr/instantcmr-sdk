@@ -1,0 +1,9 @@
+﻿{
+  "dpatRoot": "./downloads/",
+  "kid": "gqdfrYj0o9uIIiIS7ZhLuQ",
+  "shs": "vjISm4YH-7AwxeIUd-SmfvZ9h6189brYUW7NKng7DC8",
+  "loglevel": "VERBOSE",
+  "copid": "dev",
+  "iepn": "dub",
+  "url": "http://localhost:8080/v3/igr/"
+}

@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Threading;
 using CommandLine;
-using CommandLine.Text;
 using Icmr.Integration.v3.Api;
 using System.Collections.Generic;
 using JsonSubTypes;
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
 
 namespace Icmr.Samples.Integration
 {
@@ -20,7 +20,7 @@ namespace Icmr.Samples.Integration
         public class Jsondb
         {
             JsonSerializer json;
-            
+
             public Jsondb(JsonSerializer json)
             {
                 this.json = json;
@@ -48,7 +48,8 @@ namespace Icmr.Samples.Integration
 
             public string Serialize<T>(T data) where T : class
             {
-                using (var stw = new StringWriter()) {
+                using (var stw = new StringWriter())
+                {
                     PipeTo(stw, data);
                     return stw.ToString();
                 }
@@ -127,39 +128,39 @@ namespace Icmr.Samples.Integration
                 var rgrutNew = orutsNew?.rgrut ?? new Rut[0];
                 var rgmrrut = rgrutOld.MergeQQQ<Rut, Rut, string>(rgrutNew).OrderBy(mr => mr.or != null);
 
-                foreach(var mrrut in rgmrrut)
+                foreach (var mrrut in rgmrrut)
                 {
                     string fpatRut(Rut rut) => Path.Combine(dpatRoot, $"./{tripxtid.Replace(':', '_')}/{rut.fpat}");
 
                     switch (mrrut.kmr)
                     {
                         case Kmr.L:
-                        {
-                            var fpat = fpatRut(mrrut.ol);
-                            l.I($"delete {mrrut.ol} from {fpat}");
-                            DirU.DeleteFileAndRemoveDirectoryIfEmptyOrLog(fpat, l);
-                            break;
-                        }
+                            {
+                                var fpat = fpatRut(mrrut.ol);
+                                l.I($"delete {mrrut.ol} from {fpat}");
+                                DirU.DeleteFileAndRemoveDirectoryIfEmptyOrLog(fpat, l);
+                                break;
+                            }
                         case Kmr.R:
-                        {
-                            var fpat = fpatRut(mrrut.or);
-                            Directory.CreateDirectory(Path.GetDirectoryName(fpat));
-                            l.I($"download {mrrut.or} into {fpat}");
-                            try
                             {
-                                using (var blob = await l.RunWithRetry(ctok, () => igr.DownloadRutAsync(dubruts.rgrut.First(rut => rut.rutid == mrrut.or.rutid).urlv, CancellationToken.None)))
-                                using (var filstr = File.Create(fpat))
+                                var fpat = fpatRut(mrrut.or);
+                                Directory.CreateDirectory(Path.GetDirectoryName(fpat));
+                                l.I($"download {mrrut.or} into {fpat}");
+                                try
                                 {
-                                    l.I($"saving into {filstr.Name}");
-                                    await blob.Stream.CopyToAsync(filstr);
+                                    using (var blob = await l.RunWithRetry(ctok, () => igr.DownloadRutAsync(dubruts.rgrut.First(rut => rut.rutid == mrrut.or.rutid).urlv, CancellationToken.None)))
+                                    using (var filstr = File.Create(fpat))
+                                    {
+                                        l.I($"saving into {filstr.Name}");
+                                        await blob.Stream.CopyToAsync(filstr);
+                                    }
                                 }
+                                catch (ErHttp er) when (er.cod == 404)
+                                {
+                                    l.W($"file not found, maybe it has been removed since?");
+                                }
+                                break;
                             }
-                            catch (ErHttp er) when (er.cod == 404)
-                            {
-                                l.W($"file not found, maybe it has been removed since?");
-                            }
-                            break;
-                        }
                         case Kmr.B:
                             if (mrrut.ol.fpat != mrrut.or.fpat)
                             {
@@ -173,18 +174,20 @@ namespace Icmr.Samples.Integration
                             }
                             else l.V($"ignore {mrrut.ol} -> {mrrut.or}");
                             break;
-                        
+
                     }
                 }
             }
 
             public async Task ProcessDosu(Dub<Dubdosu> dub) =>
-                await Process(dub, dubdosu => dubdosu.dosuxtid, dubdosu => dubdosu?.decode(), async (dubdosu, fpat, odosuOld, odosuNew) => {
+                await Process(dub, dubdosu => dubdosu.dosuxtid, dubdosu => dubdosu?.decode(), async (dubdosu, fpat, odosuOld, odosuNew) =>
+                {
                     await ProcessImages(Path.GetDirectoryName(fpat), (odosuOld ?? odosuNew).dosuxtid, odosuOld, odosuNew, dubdosu.oafter);
                 });
 
             public async Task ProcessTrip(Dub<Dubtrip> dub) =>
-                await Process(dub, dubtrip => dubtrip.tripxtid, dubtrip => dubtrip?.decode(), async (dubtrip, fpat, otripOld, otripNew) => {
+                await Process(dub, dubtrip => dubtrip.tripxtid, dubtrip => dubtrip?.decode(), async (dubtrip, fpat, otripOld, otripNew) =>
+                {
                     var rgdosuOld = otripOld?.value.rgdosu ?? new Dosu[0];
                     var rgdosuNew = otripNew?.value.rgdosu ?? new Dosu[0];
                     var rgmrdosu = rgdosuOld.MergeQQQ<Dosu, Dosu, string>(rgdosuNew);
@@ -203,15 +206,15 @@ namespace Icmr.Samples.Integration
                     );
                 });
 
-            public async Task ProcessUser(Dub<Dubuser> dub) => 
-                await Process(dub, dubuser => dubuser.userxtid, dubuser => dubuser?.decode(), async (dubuser, fpat, ouserOld, ouserNew) => { });
+            public async Task ProcessUser(Dub<Dubuser> dub) =>
+                await Process(dub, dubuser => dubuser.userxtid, dubuser => dubuser?.decode(),  (dubuser, fpat, ouserOld, ouserNew) => Task.CompletedTask );
 
             public async Task ProcessRoom(Dub<Dubroom> dub) =>
-                await ProcessDiff(dub, dubroom => dubroom.roomxtid, dubroom => dubroom?.decode(), async (dubroom, fpat, oroomOld, oroomNew) => { });
+                await ProcessDiff(dub, dubroom => dubroom.roomxtid, dubroom => dubroom?.decode(), (dubroom, fpat, oroomOld, oroomNew) => Task.CompletedTask);
 
-            public async Task Process<Tdub, Tdb>(Dub<Tdub> dub, Func<Tdub, string> dgId, Func<Tdub, Tdb> dgDecode, Func<Dub<Tdub>, string, Tdb, Tdb, Task> dgProcess) 
-                where Tdub: class 
-                where Tdb: class
+            public async Task Process<Tdub, Tdb>(Dub<Tdub> dub, Func<Tdub, string> dgId, Func<Tdub, Tdb> dgDecode, Func<Dub<Tdub>, string, Tdb, Tdb, Task> dgProcess)
+                where Tdub : class
+                where Tdb : class
             {
                 var rtyn = typeof(Tdub).Name.ToLowerInvariant();
                 var xtid = dgId(dub.oafter ?? dub.obefore);
@@ -237,11 +240,11 @@ namespace Icmr.Samples.Integration
                 if (odbNew != null)
                     jsondb.WriteFile(fpat, odbNew);
                 else DirU.DeleteFileOrLog(fpat, l);
-            }     
-            
-            public async Task ProcessDiff<Tdub, Tdb>(Dub<Tdub> dub, Func<Tdub, string> dgId, Func<Tdub, Tdb> dgDecode, Func<Dub<Tdub>, string, Tdb, Tdb, Task> dgProcess) 
-                where Tdub: class 
-                where Tdb: class
+            }
+
+            public async Task ProcessDiff<Tdub, Tdb>(Dub<Tdub> dub, Func<Tdub, string> dgId, Func<Tdub, Tdb> dgDecode, Func<Dub<Tdub>, string, Tdb, Tdb, Task> dgProcess)
+                where Tdub : class
+                where Tdb : class
             {
                 var rtyn = typeof(Tdub).Name.ToLowerInvariant();
                 var xtid = dgId(dub.oafter ?? dub.obefore);
@@ -264,7 +267,7 @@ namespace Icmr.Samples.Integration
             public async Task Receive()
             {
                 l.I("starting up");
-                while(!ctok.IsCancellationRequested)
+                while (!ctok.IsCancellationRequested)
                 {
                     l.D($"receiving from iepn '{iepn}'...");
                     var orecid = Maybe.Of(Guid.NewGuid().ToString());
@@ -274,7 +277,7 @@ namespace Icmr.Samples.Integration
                     else l.I($"received {dubev.rgdubm.Length} updates");
 
                     var idubm = 0;
-                    foreach(var dubm in dubev.rgdubm)
+                    foreach (var dubm in dubev.rgdubm)
                     {
                         l.I($"processing dubm {++idubm}/{dubev.rgdubm.Length}: {dubm}");
                         switch (dubm.kdubm)
@@ -295,13 +298,13 @@ namespace Icmr.Samples.Integration
         static async Task ReceiveDub(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, string dpatRoot, string iepn)
         {
             var l = lf.L<IntegrationSample>();
-            l.I($"will donwload to {Path.GetFullPath(dpatRoot)}");
+            l.I($"will download to {Path.GetFullPath(dpatRoot)}");
 
             var ctoks = new CancellationTokenSource();
             var receiver = new Receiver(ctoks.Token, igr, dpatRoot, iepn, lf, jsondb);
-            var task = new StoppableTask(TaskEx.Run(async () => await receiver.Receive(), ctoks.Token), ctoks);
+            var task = new StoppableTask(Task.Run(async () => await receiver.Receive(), ctoks.Token), ctoks);
 
-            _ = TaskEx.Run(() =>
+            _ = Task.Run(() =>
               {
                   l.I("press any key to stop");
                   Console.ReadKey();
@@ -310,6 +313,7 @@ namespace Icmr.Samples.Integration
               });
 
             await task.Task();
+
         }
 
         static async Task DownloadRut(L l, v3.IntegrationClient igr, Ruted rut, string dpat, CancellationToken ctok)
@@ -326,13 +330,15 @@ namespace Icmr.Samples.Integration
                     await blob.Stream.CopyToAsync(filstr);
                 }
             }
-            catch (ErHttp er) when(er.cod == 404)
+            catch (ErHttp er) when (er.cod == 404)
             {
                 l.W($"file not found, maybe it has been removed since?");
             }
+
         }
 
-        static async Task<Wetag<Trip>> GetTrip(L l, v3.IntegrationClient igr, string tripxtid, CancellationToken ctok, string odpatDownloadRut = null) {
+        static async Task<Wetag<Trip>> GetTrip(L l, v3.IntegrationClient igr, string tripxtid, CancellationToken ctok, string odpatDownloadRut = null)
+        {
             var wetagtriped = await l.RunWithRetry(ctok, () => igr.GetTripAsync(tripxtid, false, ctok));
 
             if (odpatDownloadRut != null)
@@ -344,15 +350,15 @@ namespace Icmr.Samples.Integration
 
         static async Task<Wetag<Trip>> UpdateTrip(L l, v3.IntegrationClient igr, string tripxtid, CancellationToken ctok, Func<Trip, Trip> dgUpdate)
         {
-            while(true)
+            while (true)
             {
                 try
                 {
                     var wetagtripSource = await GetTrip(l, igr, tripxtid, ctok);
                     l.D($"received {wetagtripSource}, updating...");
                     return await PutTrip(l, igr, ctok, wetagtripSource.etag, dgUpdate(wetagtripSource.value));
-                } 
-                catch (ErHttp er) when(er.cod == 412)
+                }
+                catch (ErHttp er) when (er.cod == 412)
                 {
                     l.W($"conflict, retrying");
                 }
@@ -412,6 +418,7 @@ namespace Icmr.Samples.Integration
                 .Also(wetagtrip => l.I($"updated: {wetagtrip}"))
                 .Also(wetagtrip => jsondb.WriteFile(fpatDb, wetagtrip))
                 .Also(wetagtrip => jsondb.WriteFile(fpat, wetagtrip.value));
+
         }
 
         static async Task ExportTrip(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdExportTrip cmd)
@@ -436,6 +443,7 @@ namespace Icmr.Samples.Integration
             var fpat = Path.GetFullPath(cmd.Fpat);
             l.I($"exporting {fpatDb} -> {fpat}");
             jsondb.WriteFile(fpat, jsondb.ReadFile<Wetag<Trip>>(fpatDb).value);
+
         }
 
         static async Task UploadRut(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdUploadRut cmd)
@@ -459,6 +467,7 @@ namespace Icmr.Samples.Integration
                     .Also(wetagtrip => l.I($"updated: {wetagtrip}"))
                     .Also(wetagtrip => jsondb.WriteFile(fpatDb, wetagtrip))
                     .Also(wetagtrip => jsondb.WriteFile(fpatTrip, wetagtrip.value));
+
         }
 
         static async Task DeleteRut(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdDeleteRut cmd)
@@ -480,6 +489,7 @@ namespace Icmr.Samples.Integration
                 .Also(wetagtrip => l.I($"updated: {wetagtrip}"))
                 .Also(wetagtrip => jsondb.WriteFile(fpatDb, wetagtrip))
                 .Also(wetagtrip => jsondb.WriteFile(fpatTrip, wetagtrip.value));
+
         }
 
         static async Task<Wetag<Scren>> GetScren(L l, v3.IntegrationClient igr, string userxtid, CancellationToken ctok)
@@ -554,7 +564,7 @@ namespace Icmr.Samples.Integration
                 try
                 {
                     await l.RunWithRetry(ctok, () => igr.DeleteScrenAsync(userxtid, ctok, oetag));
-                    return;
+
                 }
                 catch (ErHttp er) when (er.cod == 412)
                 {
@@ -567,7 +577,7 @@ namespace Icmr.Samples.Integration
                     catch (ErHttp erT) when (erT.cod == 404)
                     {
                         l.W("scren already removed, giving up");
-                        return;
+
                     }
                 }
             }
@@ -585,6 +595,7 @@ namespace Icmr.Samples.Integration
             var ctok = ctoks.Token;
             await DeleteScrenI(l, igr, cmd.Userxtid, ctok, jsondb.OreadFile<Wetag<Scren>>(fpatDb)?.etag);
             File.Delete(fpatDb);
+
         }
 
         static async Task ImportScren(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdImportScren cmd)
@@ -607,6 +618,7 @@ namespace Icmr.Samples.Integration
                 .Also(wetagscren => l.I($"updated: {wetagscren}"))
                 .Also(wetagscren => jsondb.WriteFile(fpatDb, wetagscren))
                 .Also(wetagscren => jsondb.WriteFile(fpat, wetagscren.value));
+
         }
 
         static async Task ExportScren(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdExportScren cmd)
@@ -629,21 +641,22 @@ namespace Icmr.Samples.Integration
 
             l.I($"exporting {fpatDb} -> {fpatScren}");
             jsondb.WriteFile(fpatScren, jsondb.ReadFile<Wetag<Scren>>(fpatDb).value);
+
         }
 
         static async Task<Tres> Put<Tin, Tout, Tres>(
-            L l, 
+            L l,
             CancellationToken ctok,
-            Func<Task<Wetag<Tout>>> dgGet, 
-            Func<Wetag<Tin>, Task<Wetag<Tres>>> dgPut, 
+            Func<Task<Wetag<Tout>>> dgGet,
+            Func<Wetag<Tin>, Task<Wetag<Tres>>> dgPut,
             Func<Tout, Tin> dginFromOut,
             Func<Tin, Task<Tin>> dgUpdate
-        ) 
-            where Tin: class 
-            where Tout: class
-            where Tres: class
+        )
+            where Tin : class
+            where Tout : class
+            where Tres : class
         {
-            while(true)
+            while (true)
             {
                 var owetagoutBefore = await l.RunWithRetry(ctok, () => l.GetOrNull(() => dgGet()));
                 l.I($"received {owetagoutBefore?.ToString() ?? "<none>"}, updating...");
@@ -664,7 +677,7 @@ namespace Icmr.Samples.Integration
                         .Also(owetagoutAfter => l.I($"updated, {owetagoutAfter?.ToString() ?? "<none>"}"))
                         .Let(owetagoutAfter => owetagoutAfter?.value);
                 }
-                catch(ErHttp er) when (er.cod == 412)
+                catch (ErHttp er) when (er.cod == 412)
                 {
                     l.W($"conflicting update, retrying");
                     continue;
@@ -672,7 +685,7 @@ namespace Icmr.Samples.Integration
             }
         }
 
-        static async Task PutRoom(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdPutRoom cmd)        
+        static async Task PutRoom(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdPutRoom cmd)
         {
             var l = lf.L<IntegrationSample>();
 
@@ -685,7 +698,7 @@ namespace Icmr.Samples.Integration
                 async () => (await igr.GetRoomAsync(cmd.Roomxtid, ctok)).decode(),
                 async (wetagroomeu) => (await igr.PutRoomAsync(cmd.Roomxtid, wetagroomeu.encode(), ctok)).decodeMap(roomed => roomed.decode()),
                 room => room.ToRoomeu(),
-                oroomeuBefore => TaskEx.FromResult(new Roomeu
+                oroomeuBefore => Task.FromResult(new Roomeu
                 {
                     ouxtid = cmd.Oouxtid ?? oroomeuBefore?.ouxtid ?? throw new Exception("Ouxtid is required"),
                     ostTitle =
@@ -710,6 +723,7 @@ namespace Icmr.Samples.Integration
                     .Also(fpatOut => jsondb.WriteFile(fpatOut, room))
                 )
             );
+
         }
 
         static async Task PutPost(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdPutPost cmd)
@@ -726,7 +740,7 @@ namespace Icmr.Samples.Integration
                 async () => (await igr.GetRoomAsync(cmd.Roomxtid, ctok))?.Let(wetagroomed => new Wetag<Room> { etag = $"\"{wetagroomed.v.rovered.wetagdtupost.etag}\"", value = wetagroomed.v.decode() }),
                 async (wetagposteu) => (await igr.PutPostAsync(cmd.Roomxtid, postxtid, wetagposteu.encode(), ctok)).decode(),
                 _ => null,
-                _ => TaskEx.FromResult(new Posteu
+                _ => Task.FromResult(new Posteu
                 {
                     userxtid = cmd.Userxtid,
                     stMessage = cmd.StMessage,
@@ -740,6 +754,7 @@ namespace Icmr.Samples.Integration
                     .Also(fpatOut => jsondb.WriteFile(fpatOut, post))
                 )
             );
+
         }
 
         static async Task PutReceipt(Lf lf, Jsondb jsondb, CmdPutReceipt cmd, Func<string, string, string, CancellationToken, Task<v3.Api.Wetag<v3.Api.Roomed>>> dgPutReceipt)
@@ -758,6 +773,7 @@ namespace Icmr.Samples.Integration
                     .Also(fpatOut => jsondb.WriteFile(fpatOut, room))
                 )
             );
+
         }
 
         static async Task PutDeliveryReceipt(Lf lf, v3.IntegrationClient igr, Jsondb jsondb, CmdPutReceipt cmd) =>
@@ -771,7 +787,7 @@ namespace Icmr.Samples.Integration
             var rgdirn = pat.Split('/');
             var rgdirnCommon = rgdirnRoot.Take(rgdirnRoot.Length - 1).ToArray();
 
-            if (!rgdirn.Take(rgdirnCommon.Length).SequenceEqual(rgdirnCommon)) 
+            if (!rgdirn.Take(rgdirnCommon.Length).SequenceEqual(rgdirnCommon))
                 return null;
 
             var rgdirnRerooted = rgdirn.Skip(rgdirnCommon.Length).ToArray();
@@ -782,7 +798,7 @@ namespace Icmr.Samples.Integration
             if (rgdirnRoot.Last() != "")
             {
                 if (!rgdirnRerooted.SequenceEqual(new string[] { rgdirnRoot.Last() }))
-                   return null;
+                    return null;
                 return rgdirnRerooted;
             }
 
@@ -802,9 +818,9 @@ namespace Icmr.Samples.Integration
 
             return new Dboxed
             {
-                rgit = 
-                    dboxed.rgit.SelectMany(dboxit => 
-                        new [] {OrgdirnReroot(dboxit.pat, rgdirnPat, fRecursive)}
+                rgit =
+                    dboxed.rgit.SelectMany(dboxit =>
+                        new[] { OrgdirnReroot(dboxit.pat, rgdirnPat, fRecursive) }
                         .Where(orgdirn => orgdirn != null)
                         .Select(rgdirn => dboxit.WithPat(rgdirn.StJoin("/")))
                     ).ToArray(),
@@ -836,9 +852,9 @@ namespace Icmr.Samples.Integration
 
             var cmaxchPat = dboxed.rgit.Select(dboxited => dboxited.pat.Length).Concat(new[] { "path".Length }).Max();
             l.I($"{"path".PadRight(cmaxchPat)}   {"size",9}   {"uploaded",-22}   {"delivered",-22}   {"etag",5}");
-            foreach(var dboxited in dboxed.rgit.OrderBy(dboxited => dboxited.pat))
+            foreach (var dboxited in dboxed.rgit.OrderBy(dboxited => dboxited.pat))
             {
-                switch(dboxited)
+                switch (dboxited)
                 {
                     case Dboxited.F dboxitedf:
                         l.I($"{dboxitedf.pat.PadRight(cmaxchPat)}   {dboxitedf.cb,9}   {dboxitedf.dtuUpload,-22}   {mpdboxsycedByFilid.Oget(dboxitedf.filid)?.Let(dboxsyced => $"{dboxsyced.dtuDelivered}") ?? "",-22}   {dboxitedf.etag,5}");
@@ -850,7 +866,10 @@ namespace Icmr.Samples.Integration
             }
 
             if (dboxed.rgsub.Length > 0)
+            {
                 l.I($"'{dboxed.userxtid}' is subscribed to document storages of {dboxed.rgsub.Select(dboxsub => $"'{dboxsub.userxtid}'").StJoin(", ")}");
+            }
+
         }
 
         static async Task DownloadDbox(Lf lf, v3.IntegrationClient igr, CmdDownloadDbox cmd)
@@ -859,14 +878,14 @@ namespace Icmr.Samples.Integration
             var ctok = new CancellationTokenSource().Token;
             var (patRemote, dboxed) = await ProcessDbox(l, igr, cmd.Userxtid, cmd.PatRemote, cmd.FRecursive, ctok);
 
-            foreach(var dboxited in dboxed.rgit.OrderBy(dboxited => dboxited.pat))
+            foreach (var dboxited in dboxed.rgit.OrderBy(dboxited => dboxited.pat))
             {
                 var patLocal = Path.GetFullPath(Path.Combine(cmd.PatLocal ?? "./", Path.Combine("./", dboxited.pat)));
                 l.I($"downloading '{dboxed.userxtid}/{dboxited.pat}' -> '{patLocal}'");
 
-                switch(dboxited)
+                switch (dboxited)
                 {
-                    case Dboxited.D dboxitedd: 
+                    case Dboxited.D dboxitedd:
                         Directory.CreateDirectory(patLocal); break;
                     case Dboxited.F dboxitedf:
                         try
@@ -882,13 +901,14 @@ namespace Icmr.Samples.Integration
                         break;
                 }
             }
+
         }
 
         static bool FDir(string patl) => File.GetAttributes(patl).HasFlag(FileAttributes.Directory);
 
         static IEnumerable<string> EnpatlChildren(string patl, string filn, bool fRecursive)
         {
-            foreach(var patlChild in Directory.EnumerateFileSystemEntries(patl, filn))
+            foreach (var patlChild in Directory.EnumerateFileSystemEntries(patl, filn))
             {
                 yield return patlChild;
                 if (fRecursive && FDir(patlChild))
@@ -909,7 +929,8 @@ namespace Icmr.Samples.Integration
             {
                 filnl = Path.GetFileName(patlRoot);
                 patlRoot = $"{Path.GetDirectoryName(patlRoot)}\\";
-            } else if (!patlRoot.EndsWith("\\")) patlRoot = $"{patlRoot}\\";
+            }
+            else if (!patlRoot.EndsWith("\\")) patlRoot = $"{patlRoot}\\";
 
             var patrRoot = cmd.PatRemote ?? "/";
             if (!patrRoot.StartsWith("/")) patrRoot = $"/{patrRoot}";
@@ -929,6 +950,7 @@ namespace Icmr.Samples.Integration
                 else
                     await l.RunWithRetry(ctok, () => igr.PutDboxFolderAsync(cmd.Userxtid, patr, ctok));
             }
+
         }
 
         static async Task DeleteDbox(Lf lf, v3.IntegrationClient igr, CmdDeleteDbox cmd)
@@ -937,6 +959,7 @@ namespace Icmr.Samples.Integration
             var ctok = new CancellationTokenSource().Token;
 
             await l.RunWithRetry(ctok, () => igr.DeleteDboxAsync(cmd.Userxtid, cmd.PatRemote, ctok));
+
         }
 
         static async Task MoveDbox(Lf lf, v3.IntegrationClient igr, CmdMoveDbox cmd)
@@ -945,10 +968,13 @@ namespace Icmr.Samples.Integration
             var ctok = new CancellationTokenSource().Token;
 
             await l.RunWithRetry(ctok, () => igr.MoveDboxAsync(cmd.Userxtid, cmd.PatSource, cmd.PatDestination, ctok));
+
         }
 
-        class CmdReceive {}
+        [Verb("receive", HelpText = "receive data updates")]
+        class CmdReceive { }
 
+        [Verb("export-trip", HelpText = "export trip")]
         class CmdExportTrip
         {
             [Option('t', "tripxtid", Required = true, HelpText = "Tripxtid of the trip to export")]
@@ -957,19 +983,21 @@ namespace Icmr.Samples.Integration
             [Option('o', "output", Required = true, HelpText = "Path to the trip json file to write into")]
             public string Fpat { get; set; }
 
-            [Option('f', "force", DefaultValue = false, HelpText = "Force download, even if trip doesn't exist locally")]
+            [Option('f', "force", Default = false, HelpText = "Force download, even if trip doesn't exist locally")]
             public bool Fforce { get; set; }
 
-            [Option('d', "download", DefaultValue = false, HelpText = "Download all files from the dropbox")]
+            [Option('d', "download", Default = false, HelpText = "Download all files from the dropbox")]
             public bool FDownloadRut { get; set; }
         }
 
-        class CmdImportTrip 
+        [Verb("import-trip", HelpText = "import trip")]
+        class CmdImportTrip
         {
             [Option('i', "input", Required = true, HelpText = "Path to the trip json file to read from")]
             public string Fpat { get; set; }
         }
 
+        [Verb("upload-rut", HelpText = "upload a file to a trip's dropbox")]
         class CmdUploadRut
         {
             [Option('i', "input", Required = true, HelpText = "Path to the trip json file to read from")]
@@ -982,6 +1010,7 @@ namespace Icmr.Samples.Integration
             public string OfpatRutRemote { get; set; }
         }
 
+        [Verb("delete-rut", HelpText = "delete a file from a trip's dropbox")]
         class CmdDeleteRut
         {
             [Option('i', "input", Required = true, HelpText = "Path to the trip json file to read from")]
@@ -991,12 +1020,14 @@ namespace Icmr.Samples.Integration
             public string FpatRutRemote { get; set; }
         }
 
+        [Verb("import-scren", HelpText = "import scren")]
         class CmdImportScren
         {
             [Option('i', "input", Required = true, HelpText = "Path to the scren json file to read from")]
             public string Fpat { get; set; }
         }
 
+        [Verb("export-scren", HelpText = "export scren")]
         class CmdExportScren
         {
             [Option('u', "userxtid", Required = true, HelpText = "Userxtid of the user to export scren from")]
@@ -1005,52 +1036,34 @@ namespace Icmr.Samples.Integration
             [Option('o', "output", Required = true, HelpText = "Path to the scren json file to write into")]
             public string Fpat { get; set; }
 
-            [Option('f', "force", DefaultValue = false, HelpText = "Force download, even if scren doesn't exist locally")]
+            [Option('f', "force", Default = false, HelpText = "Force download, even if scren doesn't exist locally")]
             public bool Fforce { get; set; }
         }
 
+        [Verb("delete-scren", HelpText = "delete scren")]
         class CmdDeleteScren
         {
             [Option('u', "userxtid", Required = true, HelpText = "Userxtid of the user to delete scren of")]
             public string Userxtid { get; set; }
         }
 
-        [AttributeUsage(AttributeTargets.Property)]
-        class RequiredAttribute: Attribute 
-        {
-            public static bool fValid<Tcmd>(Lf lf, Tcmd cmd)
-            {
-                var l = lf.L<IntegrationSample>();
-                var fValid = true;
-
-                foreach(var rpi in cmd.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
-                {
-                    if (rpi.GetCustomAttributes(typeof(RequiredAttribute), true).Length > 0 && rpi.GetValue(cmd, null) == null)
-                    {
-                        l.E($"<{rpi.Name.StKebabCase()}> is required");
-                        fValid = false;
-                    }
-                }
-
-                return fValid;
-            }
-        }
-
+        [Verb("room", HelpText = "create, update or retrieve a chat room")]
         class CmdPutRoom
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Roomxtid", Required = true)]
             public string Roomxtid { get; set; }
 
-            [ValueOption(1)]
+            [Value(1, MetaName = "Oouxtid")]
             public string Oouxtid { get; set; }
 
-            [Option('t', DefaultValue = null, HelpText = "Discussion topic title ('~' to remove)")]
+            [Option('t', Default = null, HelpText = "Discussion topic title ('~' to remove)")]
             public string OstTitle { get; set; }
 
-            [OptionArray('u', DefaultValue = new string[0], HelpText = "List of members to add to or remove from the room (coma separated list of userxtids, prepend with '+' to add unmuted, '!' to add muted or '~' to remove)")]
+            // QQQ: array
+            [Option('u', Default = new string[0], HelpText = "List of members to add to or remove from the room (coma separated list of userxtids, prepend with '+' to add unmuted, '!' to add muted or '~' to remove)")]
             public string[] Rguserxtid { get; set; }
 
-            [Option('o', DefaultValue = null, HelpText = "Write updated json into file")]
+            [Option('o', Default = null, HelpText = "Write updated json into file")]
             public string OfpatOut { get; set; }
 
             public IEnumerable<string> RguserxtidAddUmuted => Rguserxtid.Where(userxtid => userxtid.StartsWith("+")).Select(userxtid => userxtid.Substring(1));
@@ -1058,180 +1071,109 @@ namespace Icmr.Samples.Integration
             public IEnumerable<string> RguserxtidRemove => Rguserxtid.Where(userxtid => userxtid.StartsWith("~")).Select(userxtid => userxtid.Substring(1));
         }
 
+        [Verb("say", HelpText = "send a message into a chat room")]
         class CmdPutPost
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Roomxtid", Required = true)]
             public string Roomxtid { get; set; }
 
-            [ValueOption(1), Required]
+            [Value(1, MetaName = "Userxtid", Required = true)]
             public string Userxtid { get; set; }
 
-            [ValueOption(2), Required]
+            [Value(2, MetaName = "StMessage", Required = true)]
             public string StMessage { get; set; }
 
-            [Option('o', DefaultValue = null, HelpText = "Write updated json into file")]
+            [Option('o', Default = null, HelpText = "Write updated json into file")]
             public string OfpatOut { get; set; }
         }
 
         class CmdPutReceipt
         {
-            [ValueOption(0)] 
+            [Value(0, MetaName = "Roomxtid")]
             public string Roomxtid { get; set; }
-            
-            [ValueOption(1)] 
+
+            [Value(1, MetaName = "Userxtid")]
             public string Userxtid { get; set; }
-            
-            [ValueOption(2)] 
+
+            [Value(2, MetaName = "Etagpost")]
             public string Etagpost { get; set; }
-            
-            [Option('o', DefaultValue = null, HelpText = "Write updated json into file")]
+
+            [Option('o', Default = null, HelpText = "Write updated json into file")]
             public string OfpatOut { get; set; }
         }
 
+        [Verb("delivery-receipt", HelpText = "update delivery receipt of a member of a chat room")]
         class CmdPutDeliveryReceipt : CmdPutReceipt { }
+
+        [Verb("read-receipt", HelpText = "update read receipt of a member of a chat room")]
         class CmdPutReadReceipt : CmdPutReceipt { }
 
+        [Verb("list-dbox", HelpText = "list contents of a user's document storage")]
         class CmdListDbox
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Userxtid", Required = true)]
             public string Userxtid { get; set; }
 
-            [ValueOption(1)]
+            [Value(1, MetaName = "PatRemote")]
             public string PatRemote { get; set; }
 
-            [Option('r', DefaultValue = false, HelpText = "Recursive")]
+            [Option('r', Default = false, HelpText = "Recursive")]
             public bool FRecursive { get; set; }
         }
 
+        [Verb("download-dbox", HelpText = "download contents of a user's document storage")]
         class CmdDownloadDbox
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Userxtid", Required = true)]
             public string Userxtid { get; set; }
 
-            [ValueOption(1)]
+            [Value(1, MetaName = "PatRemote")]
             public string PatRemote { get; set; }
 
-            [ValueOption(2)]
+            [Value(2, MetaName = "PatLocal")]
             public string PatLocal { get; set; }
 
-            [Option('r', DefaultValue = false, HelpText = "Recursive")]
+            [Option('r', Default = false, HelpText = "Recursive")]
             public bool FRecursive { get; set; }
         }
 
+        [Verb("upload-dbox", HelpText = "upload files to a user's document storage")]
         class CmdUploadDbox
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Userxtid", Required = true)]
             public string Userxtid { get; set; }
 
-            [ValueOption(1)]
+            [Value(1, MetaName = "PatLocal")]
             public string PatLocal { get; set; }
 
-            [ValueOption(2)]
+            [Value(2, MetaName = "PatRemote")]
             public string PatRemote { get; set; }
 
-            [Option('r', DefaultValue = false, HelpText = "Recursive")]
+            [Option('r', Default = false, HelpText = "Recursive")]
             public bool FRecursive { get; set; }
         }
 
+        [Verb("delete-dbox", HelpText = "delete contents of a user's document storage")]
         class CmdDeleteDbox
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Userxtid", Required = true)]
             public string Userxtid { get; set; }
 
-            [ValueOption(1), Required]
+            [Value(1, MetaName = "PatRemote", Required = true)]
             public string PatRemote { get; set; }
         }
 
+        [Verb("move-dbox", HelpText = "move contents of a user's document storage")]
         class CmdMoveDbox
         {
-            [ValueOption(0), Required]
+            [Value(0, MetaName = "Userxtid", Required = true)]
             public string Userxtid { get; set; }
 
-            [ValueOption(1), Required]
+            [Value(1, MetaName = "PatSource", Required = true)]
             public string PatSource { get; set; }
 
-            [ValueOption(2), Required]
+            [Value(2, MetaName = "PatDestination", Required = true)]
             public string PatDestination { get; set; }
-        }
-
-        class Clp2
-        {
-            public Clp2()
-            {
-                receive = new CmdReceive();
-                importtrip = new CmdImportTrip();
-                exporttrip = new CmdExportTrip();
-                uploadrut = new CmdUploadRut();
-                deleterut = new CmdDeleteRut();
-                importscren = new CmdImportScren();
-                exportscren = new CmdExportScren();
-                putroom = new CmdPutRoom();
-                putpost = new CmdPutPost();
-                putdeliveryreceipt = new CmdPutDeliveryReceipt();
-                putreadreceipt = new CmdPutReadReceipt();
-                listdbox = new CmdListDbox();
-                downloaddbox = new CmdDownloadDbox();
-                uploaddbox = new CmdUploadDbox();
-                deletedbox = new CmdDeleteDbox();
-                movedbox = new CmdMoveDbox();
-            }
-
-            [VerbOption("receive", HelpText = "receive data updates")]
-            public CmdReceive receive { get; set; }
-
-            [VerbOption("import-trip", HelpText = "import trip")]
-            public CmdImportTrip importtrip { get; set; }
-
-            [VerbOption("export-trip", HelpText = "export trip")]
-            public CmdExportTrip exporttrip { get; set; }
-
-            [VerbOption("upload-rut", HelpText = "upload a file to a trip's dropbox")]
-            public CmdUploadRut uploadrut { get; set; }
-
-            [VerbOption("delete-rut", HelpText = "delete a file from a trip's dropbox")]
-            public CmdDeleteRut deleterut { get; set; }
-
-            [VerbOption("import-scren", HelpText = "import scren")]
-            public CmdImportScren importscren { get; set; }
-
-            [VerbOption("export-scren", HelpText = "export scren")]
-            public CmdExportScren exportscren { get; set; }
-
-            [VerbOption("delete-scren", HelpText = "delete scren")]
-            public CmdDeleteScren deletescren { get; set; }
-
-            [VerbOption("room", HelpText = "create, update or retrieve a chat room")]
-            public CmdPutRoom putroom { get; set; }
-
-            [VerbOption("say", HelpText = "send a message into a chat room")]
-            public CmdPutPost putpost { get; set; }
-
-            [VerbOption("read-receipt", HelpText = "update read receipt of a member of a chat room")]
-            public CmdPutReadReceipt putreadreceipt { get; set; }
-
-            [VerbOption("delivery-receipt", HelpText = "update delivery receipt of a member of a chat room")]
-            public CmdPutDeliveryReceipt putdeliveryreceipt { get; set; }
-
-            [VerbOption("list-dbox", HelpText = "list contents of a user's document storage")]
-            public CmdListDbox listdbox { get; set; }
-
-            [VerbOption("download-dbox", HelpText = "download contents of a user's document storage")]
-            public CmdDownloadDbox downloaddbox { get; set; }
-
-            [VerbOption("upload-dbox", HelpText = "upload files to a user's document storage")]
-            public CmdUploadDbox uploaddbox { get; set; }
-
-            [VerbOption("delete-dbox", HelpText = "delete contents of a user's document storage")]
-            public CmdDeleteDbox deletedbox { get; set; }
-
-            [VerbOption("move-dbox", HelpText = "move contents of a user's document storage")]
-            public CmdMoveDbox movedbox { get; set; }
-
-            [HelpVerbOption("help")]
-            public string Help(string cmdn) => HelpText.AutoBuild(this, cmdn);
-
-            [ParserState]
-            public IParserState LastParserState { get; set; }
         }
 
         public class St18JsonConverter : JsonConverter
@@ -1274,113 +1216,130 @@ namespace Icmr.Samples.Integration
 
         public static void Main(string[] args)
         {
-            var clp = new Clp2();
-            string cmdn = null;
-            object cmd = null;
-            if (!Parser.Default.ParseArgumentsStrict(args, clp, (cmdnT, cmdT) => { cmdn = cmdnT; cmd = cmdT; })) return;
+            var settings = new Settings();
+            new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config.json")
+                .Build()
+                .Bind(settings);
 
-            var lf = new Lf(new Lwcon().Filter(Properties.Settings.Default.loglevel));
+
+            var lf = new Lf(new Lwcon().Filter(settings.loglevel));
             var l = lf.L<IntegrationSample>();
-            if (!RequiredAttribute.fValid(lf, cmd)) return;
+            // if (!RequiredAttribute.fValid(lf, cmd)) return;
 
             var jsondb = new Jsondb(
-                JsonSerializer.Create(new JsonSerializerSettings { 
+                JsonSerializer.Create(new JsonSerializerSettings
+                {
                     NullValueHandling = NullValueHandling.Ignore,
                     Converters = new List<JsonConverter>() {
-                        JsonSubtypesConverterBuilder
-                            .Of(typeof(Buta), "k")
-                            .RegisterSubtype(typeof(Buta.Sync), "sync")
-                            .RegisterSubtype(typeof(Buta.Triplist), "triplist")
-                            .RegisterSubtype(typeof(Buta.Roomlist), "roomlist")
-                            .RegisterSubtype(typeof(Buta.Dbox), "dbox")
-                            .RegisterSubtype(typeof(Buta.Docr), "docr")
-                            .RegisterSubtype(typeof(Buta.LaunchActivity), "launchactivity")
-                            .SerializeDiscriminatorProperty()
-                            .Build(),
-                        JsonSubtypesConverterBuilder
-                            .Of(typeof(Krund), "k")
-                            .RegisterSubtype(typeof(Krund.Fixed), "fixed")
-                            .RegisterSubtype(typeof(Krund.Relative), "relative")
-                            .RegisterSubtype(typeof(Krund.Unit), "unit")
-                            .SerializeDiscriminatorProperty()
-                            .Build(),
-                        JsonSubtypesConverterBuilder
-                            .Of(typeof(Ev), "k")
-                            .RegisterSubtype(typeof(Ev.Byte), "byte")
-                            .RegisterSubtype(typeof(Ev.Short), "short")
-                            .RegisterSubtype(typeof(Ev.Int), "int")
-                            .RegisterSubtype(typeof(Ev.Long), "long")
-                            .RegisterSubtype(typeof(Ev.Float), "float")
-                            .RegisterSubtype(typeof(Ev.Double), "double")
-                            .RegisterSubtype(typeof(Ev.Boolean), "boolean")
-                            .RegisterSubtype(typeof(Ev.String), "string")
-                            .RegisterSubtype(typeof(Ev.Char), "char")
-                            .RegisterSubtype(typeof(Ev.ByteArray), "bytearray")
-                            .RegisterSubtype(typeof(Ev.ShortArray), "shortarray")
-                            .RegisterSubtype(typeof(Ev.IntArray), "intarray")
-                            .RegisterSubtype(typeof(Ev.LongArray), "longarray")
-                            .RegisterSubtype(typeof(Ev.FloatArray), "floatarray")
-                            .RegisterSubtype(typeof(Ev.DoubleArray), "doublearray")
-                            .RegisterSubtype(typeof(Ev.BooleanArray), "booleanarray")
-                            .RegisterSubtype(typeof(Ev.StringArray), "stringarray")
-                            .RegisterSubtype(typeof(Ev.CharArray), "chararray")
-                            .RegisterSubtype(typeof(Ev.IntegerArrayList), "integerarraylist")
-                            .RegisterSubtype(typeof(Ev.StringArrayList), "stringarraylist")
-                            .RegisterSubtype(typeof(Ev.Json), "json")
-                            .SerializeDiscriminatorProperty()
-                            .Build(),
-                        new St18JsonConverter(),
-                        JsonSubtypesConverterBuilder
-                            .Of(typeof(Payp), "k")
-                            .RegisterSubtype(typeof(Payp.Msg), "msg")
-                            .RegisterSubtype(typeof(Payp.Update), "update")
-                            .SerializeDiscriminatorProperty()
-                            .Build(),
+                                JsonSubtypesConverterBuilder
+                                    .Of(typeof(Buta), "k")
+                                    .RegisterSubtype(typeof(Buta.Sync), "sync")
+                                    .RegisterSubtype(typeof(Buta.Triplist), "triplist")
+                                    .RegisterSubtype(typeof(Buta.Roomlist), "roomlist")
+                                    .RegisterSubtype(typeof(Buta.Dbox), "dbox")
+                                    .RegisterSubtype(typeof(Buta.Docr), "docr")
+                                    .RegisterSubtype(typeof(Buta.LaunchActivity), "launchactivity")
+                                    .SerializeDiscriminatorProperty()
+                                    .Build(),
+                                JsonSubtypesConverterBuilder
+                                    .Of(typeof(Krund), "k")
+                                    .RegisterSubtype(typeof(Krund.Fixed), "fixed")
+                                    .RegisterSubtype(typeof(Krund.Relative), "relative")
+                                    .RegisterSubtype(typeof(Krund.Unit), "unit")
+                                    .SerializeDiscriminatorProperty()
+                                    .Build(),
+                                JsonSubtypesConverterBuilder
+                                    .Of(typeof(Ev), "k")
+                                    .RegisterSubtype(typeof(Ev.Byte), "byte")
+                                    .RegisterSubtype(typeof(Ev.Short), "short")
+                                    .RegisterSubtype(typeof(Ev.Int), "int")
+                                    .RegisterSubtype(typeof(Ev.Long), "long")
+                                    .RegisterSubtype(typeof(Ev.Float), "float")
+                                    .RegisterSubtype(typeof(Ev.Double), "double")
+                                    .RegisterSubtype(typeof(Ev.Boolean), "boolean")
+                                    .RegisterSubtype(typeof(Ev.String), "string")
+                                    .RegisterSubtype(typeof(Ev.Char), "char")
+                                    .RegisterSubtype(typeof(Ev.ByteArray), "bytearray")
+                                    .RegisterSubtype(typeof(Ev.ShortArray), "shortarray")
+                                    .RegisterSubtype(typeof(Ev.IntArray), "intarray")
+                                    .RegisterSubtype(typeof(Ev.LongArray), "longarray")
+                                    .RegisterSubtype(typeof(Ev.FloatArray), "floatarray")
+                                    .RegisterSubtype(typeof(Ev.DoubleArray), "doublearray")
+                                    .RegisterSubtype(typeof(Ev.BooleanArray), "booleanarray")
+                                    .RegisterSubtype(typeof(Ev.StringArray), "stringarray")
+                                    .RegisterSubtype(typeof(Ev.CharArray), "chararray")
+                                    .RegisterSubtype(typeof(Ev.IntegerArrayList), "integerarraylist")
+                                    .RegisterSubtype(typeof(Ev.StringArrayList), "stringarraylist")
+                                    .RegisterSubtype(typeof(Ev.Json), "json")
+                                    .SerializeDiscriminatorProperty()
+                                    .Build(),
+                                new St18JsonConverter(),
+                                JsonSubtypesConverterBuilder
+                                    .Of(typeof(Payp), "k")
+                                    .RegisterSubtype(typeof(Payp.Msg), "msg")
+                                    .RegisterSubtype(typeof(Payp.Update), "update")
+                                    .SerializeDiscriminatorProperty()
+                                    .Build(),
                     }
                 })
-            ); 
-            l.I($"starting up, performing {cmdn}");
+            );
 
-            var dpatRoot = Properties.Settings.Default.dpatRoot;
-            var iepn = Properties.Settings.Default.iepn;
+            var dpatRoot = settings.dpatRoot;
+            var iepn = settings.iepn;
             var igr = new v3.IntegrationClient(
-                uriEndpoint: new Uri(Properties.Settings.Default.url),
-                copid: Properties.Settings.Default.copid,
-                kid: Properties.Settings.Default.kid,
-                shs: Properties.Settings.Default.shs,
+                uriEndpoint: new Uri(settings.url),
+                copid: settings.copid,
+                kid: settings.kid,
+                shs: settings.shs,
                 lf: lf
             );
 
-            try
+            var commands = Assembly.GetExecutingAssembly()
+                .GetTypes()
+                .Where(t => t.GetCustomAttributes(typeof(VerbAttribute), false).Length > 0)
+                .ToArray();
+
+            var parsedArgs = Parser.Default.ParseArguments(args, commands);
+            if (parsedArgs is Parsed<object> parsed)
             {
-                l.I("waiting for task to finish...");
-                switch (cmd)
+                try
                 {
-                    case CmdReceive cmdreceive: ReceiveDub(lf, igr, jsondb, dpatRoot, iepn).Wait(); break;
-                    case CmdImportTrip cmdimporttrip: ImportTrip(lf, igr, jsondb, cmdimporttrip).Wait(); break;
-                    case CmdExportTrip cmdexporttrip: ExportTrip(lf, igr, jsondb, cmdexporttrip).Wait(); break;
-                    case CmdUploadRut cmduploadrut: UploadRut(lf, igr, jsondb, cmduploadrut).Wait(); break;
-                    case CmdDeleteRut cmddeleterut: DeleteRut(lf, igr, jsondb, cmddeleterut).Wait(); break;
-                    case CmdImportScren cmdimportscren: ImportScren(lf, igr, jsondb, cmdimportscren).Wait(); break;
-                    case CmdExportScren cmdexportscren: ExportScren(lf, igr, jsondb, cmdexportscren).Wait(); break;
-                    case CmdDeleteScren cmddeletescren: DeleteScren(lf, igr, jsondb, cmddeletescren).Wait(); break;
-                    case CmdPutRoom cmdputroom: PutRoom(lf, igr, jsondb, cmdputroom).Wait(); break;
-                    case CmdPutPost cmdputpost: PutPost(lf, igr, jsondb, cmdputpost).Wait(); break;
-                    case CmdPutReadReceipt cmdputreceipt: PutReadReceipt(lf, igr, jsondb, cmdputreceipt).Wait(); break;
-                    case CmdPutDeliveryReceipt cmdputreceipt: PutDeliveryReceipt(lf, igr, jsondb, cmdputreceipt).Wait(); break;
-                    case CmdListDbox cmdlistdbox: ListDbox(lf, igr, cmdlistdbox).Wait(); break;
-                    case CmdDownloadDbox cmddownloaddbox: DownloadDbox(lf, igr, cmddownloaddbox).Wait(); break;
-                    case CmdDeleteDbox cmddeletedbox: DeleteDbox(lf, igr, cmddeletedbox).Wait(); break;
-                    case CmdUploadDbox cmduploaddbox: UploadDbox(lf, igr, cmduploaddbox).Wait(); break;
-                    case CmdMoveDbox cmdmovedbox: MoveDbox(lf, igr, cmdmovedbox).Wait(); break;
+                    l.I($"starting up");
+                    l.I("waiting for task to finish...");
+                    var task = parsed.Value switch
+                    {
+                        CmdReceive cmdreceive => ReceiveDub(lf, igr, jsondb, dpatRoot, iepn),
+                        CmdImportTrip cmdimporttrip => ImportTrip(lf, igr, jsondb, cmdimporttrip),
+                        CmdExportTrip cmdexporttrip => ExportTrip(lf, igr, jsondb, cmdexporttrip),
+                        CmdUploadRut cmduploadrut => UploadRut(lf, igr, jsondb, cmduploadrut),
+                        CmdDeleteRut cmddeleterut => DeleteRut(lf, igr, jsondb, cmddeleterut),
+                        CmdImportScren cmdimportscren => ImportScren(lf, igr, jsondb, cmdimportscren),
+                        CmdExportScren cmdexportscren => ExportScren(lf, igr, jsondb, cmdexportscren),
+                        CmdDeleteScren cmddeletescren => DeleteScren(lf, igr, jsondb, cmddeletescren),
+                        CmdPutRoom cmdputroom => PutRoom(lf, igr, jsondb, cmdputroom),
+                        CmdPutPost cmdputpost => PutPost(lf, igr, jsondb, cmdputpost),
+                        CmdPutReadReceipt cmdputreceipt => PutReadReceipt(lf, igr, jsondb, cmdputreceipt),
+                        CmdPutDeliveryReceipt cmdputreceipt => PutDeliveryReceipt(lf, igr, jsondb, cmdputreceipt),
+                        CmdListDbox cmdlistdbox => ListDbox(lf, igr, cmdlistdbox),
+                        CmdDownloadDbox cmddownloaddbox => DownloadDbox(lf, igr, cmddownloaddbox),
+                        CmdDeleteDbox cmddeletedbox => DeleteDbox(lf, igr, cmddeletedbox),
+                        CmdUploadDbox cmduploaddbox => UploadDbox(lf, igr, cmduploaddbox),
+                        CmdMoveDbox cmdmovedbox => MoveDbox(lf, igr, cmdmovedbox),
+                        _ => Task.FromResult(1)
+                    };
+                    task.Wait();
+                }
+                catch (Exception er)
+                {
+                    l.E($"failed with {er}");
+                }
+                finally
+                {
+                    l.I("finished");
                 }
             }
-            catch (Exception er)
-            {
-                l.E($"failed with {er}");
-            }
-
-            l.I("finished");
         }
     }
 }
