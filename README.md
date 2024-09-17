@@ -1,10 +1,12 @@
 # instantCMR SDK and sample application
 
-This repository is part of the [instantcmr API](https://docs.instantcmr.com) documentation. The project is built around .NET 8.0, it should run on Windows, Linux and Macos. If needed, you find the installer for your platform at this [url](https://dotnet.microsoft.com/en-us/download).
+This repository is part of the [instantCMR API](https://docs.instantcmr.com) documentation. The project is built around .NET 8.0, it should run on Windows, Linux and macOS. If needed, you find the installer for your platform at this [url](https://dotnet.microsoft.com/en-us/download).
+
+**Warning:** This code is not intended to use in production. Especially because it only uses very basic error handling that is not suitable for real life in production scenarios. 
 
 The SDK consists of the following projects:
 
-- **icmr.integration**: a library containing wrappers around the endpoints and the types needed for communicating with the instantCMD backend.
+- **icmr.integration**: a library containing wrappers around the endpoints and the types needed for communicating with the instantCMR backend.
 - **icmr.integration.sample**: a console application demonstrating the usage of the library.
 
 
