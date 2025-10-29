@@ -280,13 +280,21 @@ namespace Icmr.Samples.Integration
                 ostPin = ulic.ostPin,
                 ostSubscription = ulic.ostSubscription,
             };
-        public static Usermeta decode(this Api.Dubusermeta usermeta) =>
-            new Usermeta
+        public static UsermetaFull decode(this Api.UsermetaFull usermeta) =>
+            new UsermetaFull
             {
                 ostEmployeeId = usermeta.ostEmployeeId,
                 ostHaulerPlate = usermeta.ostHaulerPlate,
                 ostTrailerPlate = usermeta.ostTrailerPlate,
                 ostVoicePhone = usermeta.ostVoicePhone,
+                extraValues = usermeta.extraValues?.Select(v => decode(v))?.ToArray(),
+            };
+        public static ProfileValue decode(this Api.DubProfileValue profileValue) =>
+            new ProfileValue
+            {
+                name = profileValue.name,
+                value = profileValue.value,
+                expiresAt = profileValue.expiresAt,
             };
         public static Dbox decode(this Api.Dubdbox dbox) =>
             new Dbox
@@ -535,8 +543,8 @@ namespace Icmr.Samples.Integration
                 wetagdtupost = rover.wetagdtupost.decodeMap(x => x),
             };
 
-        public static Usermeta decode(this Api.Usermeta usermeta) =>
-            new Usermeta
+        public static UsermetaSimple decode(this Api.UsermetaSimple usermeta) =>
+            new UsermetaSimple
             {
                 ostEmployeeId = usermeta.ostEmployeeId,
                 ostHaulerPlate = usermeta.ostHaulerPlate,
@@ -1154,7 +1162,7 @@ namespace Icmr.Samples.Integration
         }
     }
 
-    public class Usermeta : Buildable<Usermeta, Usermeta.B>
+    public class UsermetaSimple : Buildable<UsermetaSimple, UsermetaSimple.B>
     {
         public string ostEmployeeId;
         public string ostVoicePhone;
@@ -1162,7 +1170,7 @@ namespace Icmr.Samples.Integration
         public string ostTrailerPlate;
 
         public override string ToString() =>
-            $"usermeta employee-id {ostEmployeeId} voice-phone {ostVoicePhone} hauler-plate {ostHaulerPlate} trailer-plate {ostTrailerPlate}";
+            $"usermetaSimple employee-id {ostEmployeeId} voice-phone {ostVoicePhone} hauler-plate {ostHaulerPlate} trailer-plate {ostTrailerPlate}";
 
         public class B : Builder
         {
@@ -1170,6 +1178,42 @@ namespace Icmr.Samples.Integration
             public B withOstVoicePhone(string ostVoicePhone) => this.Also(b => t.ostVoicePhone = ostVoicePhone);
             public B withOstHaulerPlate(string ostHaulerPlate) => this.Also(b => t.ostHaulerPlate = ostHaulerPlate);
             public B withOstTrailerPlate(string ostTrailerPlate) => this.Also(b => t.ostTrailerPlate = ostTrailerPlate);
+        }
+    }
+
+    public class UsermetaFull : Buildable<UsermetaFull, UsermetaFull.B>
+    {
+        public string ostEmployeeId;
+        public string ostVoicePhone;
+        public string ostHaulerPlate;
+        public string ostTrailerPlate;
+        public ProfileValue[] extraValues;
+
+        public override string ToString() =>
+            $"usermetaFull employee-id {ostEmployeeId} voice-phone {ostVoicePhone} hauler-plate {ostHaulerPlate} trailer-plate {ostTrailerPlate} extraValues {extraValues?.StJoin()}";
+
+        public class B : Builder
+        {
+            public B withOstEmployeeId(string ostEmployeeId) => this.Also(b => t.ostEmployeeId = ostEmployeeId);
+            public B withOstVoicePhone(string ostVoicePhone) => this.Also(b => t.ostVoicePhone = ostVoicePhone);
+            public B withOstHaulerPlate(string ostHaulerPlate) => this.Also(b => t.ostHaulerPlate = ostHaulerPlate);
+            public B withOstTrailerPlate(string ostTrailerPlate) => this.Also(b => t.ostTrailerPlate = ostTrailerPlate);
+            public B withExtraValues(ProfileValue[] extraValues) => this.Also(b => t.extraValues = extraValues);
+        }
+    }
+
+    public class ProfileValue : Buildable<ProfileValue, ProfileValue.B>
+    {
+        public string name;
+        public string value;
+        public DateOnly? expiresAt;
+        public override string ToString() =>
+            $"name {name} value {value} expiresAt {expiresAt}";
+        public class B : Builder
+        {
+            public B withName(string name) => this.Also(b => t.name = name);
+            public B withValue(string value) => this.Also(b => t.value = value);
+            public B withExpiresAt(DateOnly? expiresAt) => this.Also(b => t.expiresAt = expiresAt);
         }
     }
 
@@ -1195,7 +1239,7 @@ namespace Icmr.Samples.Integration
         public string ouid;
         public string usern;
         public Ulic[] rgulic;
-        public Usermeta usermeta;
+        public UsermetaFull usermeta;
         public Dbox dbox;
         public Api.Krole[] rgkrole;
         public string[] rgtripxtid;
@@ -1212,7 +1256,7 @@ namespace Icmr.Samples.Integration
             public B withOuid(string ouid) => this.Also(b => t.ouid = ouid);
             public B withUsern(string usern) => this.Also(b => t.usern = usern);
             public B withRgulic(Ulic[] rgulic) => this.Also(b => t.rgulic = rgulic);
-            public B withUsermeta(Usermeta usermeta) => this.Also(b => t.usermeta = usermeta);
+            public B withUsermeta(UsermetaFull usermeta) => this.Also(b => t.usermeta = usermeta);
             public B withDbox(Dbox dbox) => this.Also(b => t.dbox = dbox);
             public B withRgkrole(Api.Krole[] rgkrole) => this.Also(b => t.rgkrole = rgkrole);
             public B withRgtripxtid(string[] rgtripxtid) => this.Also(b => t.rgtripxtid = rgtripxtid);
@@ -1486,7 +1530,7 @@ namespace Icmr.Samples.Integration
     {
         public string userxtid;
         public string usern;
-        public Usermeta usermeta;
+        public UsermetaSimple usermeta;
         public string colBg;
         public Wetag<DateTime> owetagdtuSync;
         public Wetag<DateTime> owetagdtuRead;
@@ -1498,7 +1542,7 @@ namespace Icmr.Samples.Integration
         {
             public B withUserxtid(string userxtid) => this.Also(b => t.userxtid = userxtid);
             public B withUsern(string usern) => this.Also(b => t.usern = usern);
-            public B withUsermeta(Usermeta usermeta) => this.Also(b => t.usermeta = usermeta);
+            public B withUsermeta(UsermetaSimple usermeta) => this.Also(b => t.usermeta = usermeta);
             public B withColBg(string colBg) => this.Also(b => t.colBg = colBg);
             public B withOwetagdtuSync(Wetag<DateTime> owetagdtuSync) => this.Also(b => t.owetagdtuSync = owetagdtuSync);
             public B withOwetagdtuRead(Wetag<DateTime> owetagdtuRead) => this.Also(b => t.owetagdtuRead = owetagdtuRead);
@@ -1510,7 +1554,7 @@ namespace Icmr.Samples.Integration
     {
         public string userxtid;
         public string usern;
-        public Usermeta usermeta;
+        public UsermetaSimple usermeta;
         public string colBg;
 
         string IKeyed<string>.Key => userxtid;
@@ -1519,7 +1563,7 @@ namespace Icmr.Samples.Integration
         {
             public B withUserxtid(string userxtid) => this.Also(b => t.userxtid = userxtid);
             public B withUsern(string usern) => this.Also(b => t.usern = usern);
-            public B withUsermeta(Usermeta usermeta) => this.Also(b => t.usermeta = usermeta);
+            public B withUsermeta(UsermetaSimple usermeta) => this.Also(b => t.usermeta = usermeta);
             public B withColBg(string colBg) => this.Also(b => t.colBg = colBg);
         }
     }

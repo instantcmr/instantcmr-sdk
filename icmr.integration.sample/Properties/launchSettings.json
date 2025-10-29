@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Icmr.Integration.Sample": {
+      "commandName": "Project",
+      "commandLineArgs": "receive"
+    }
+  }
+}

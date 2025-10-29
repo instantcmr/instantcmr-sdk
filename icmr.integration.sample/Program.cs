@@ -1,6 +1,8 @@
 ﻿using Icmr.Integration;
 using v3 = Icmr.Integration.v3;
 using System;
+using System.Text.RegularExpressions;
+using System.Globalization;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
@@ -207,7 +209,7 @@ namespace Icmr.Samples.Integration
                 });
 
             public async Task ProcessUser(Dub<Dubuser> dub) =>
-                await Process(dub, dubuser => dubuser.userxtid, dubuser => dubuser?.decode(),  (dubuser, fpat, ouserOld, ouserNew) => Task.CompletedTask );
+                await Process(dub, dubuser => dubuser.userxtid, dubuser => dubuser?.decode(), (dubuser, fpat, ouserOld, ouserNew) => Task.CompletedTask);
 
             public async Task ProcessRoom(Dub<Dubroom> dub) =>
                 await ProcessDiff(dub, dubroom => dubroom.roomxtid, dubroom => dubroom?.decode(), (dubroom, fpat, oroomOld, oroomNew) => Task.CompletedTask);
@@ -971,6 +973,48 @@ namespace Icmr.Samples.Integration
 
         }
 
+        static async Task UploadScores(Lf lf, v3.IntegrationClient igr, CmdUploadScores cmd)
+        {
+
+            var l = lf.L<IntegrationSample>();
+            var ctok = new CancellationTokenSource().Token;
+
+            var scores = cmd.Scores.Select(x =>
+            {
+                var parts = x.Split("=");
+                return new GamificationScore { userxtid = parts[0], score = int.Parse(parts[1]) };
+            });
+
+            await l.RunWithRetry(ctok, () => igr.UploadScoresAsync(cmd.Metric, cmd.Date, scores.ToArray(), ctok));
+        }
+
+        static async Task FinalizeScores(Lf lf, v3.IntegrationClient igr, CmdUploadScores cmd)
+        {
+
+            var l = lf.L<IntegrationSample>();
+            var ctok = new CancellationTokenSource().Token;
+
+            await l.RunWithRetry(ctok, () => igr.FinalizeScoresAsync(cmd.Metric, cmd.Date, ctok));
+        }
+
+
+        static void CheckDateFormat(string date)
+        {
+            if (!DateTime.TryParseExact(
+                      date,
+                      "yyyy-MM-dd",
+                      CultureInfo.InvariantCulture,
+                      DateTimeStyles.None,
+                      out _
+                  ))
+            {
+                throw new ArgumentException(
+                    $"Invalid date format '{date}'. Expected format: yyyy-MM-dd"
+                );
+            }
+        }
+
+
         [Verb("receive", HelpText = "receive data updates")]
         class CmdReceive { }
 
@@ -1176,6 +1220,80 @@ namespace Icmr.Samples.Integration
             public string PatDestination { get; set; }
         }
 
+        [Verb("upload-scores", HelpText = "upload user scores for a given day and metric")]
+        class CmdUploadScores
+        {
+            [Value(0, MetaName = "metric", Required = true)]
+            public string Metric { get; set; }
+
+            private string _date;
+
+            [Value(1, MetaName = "date", Required = true)]
+            public string Date
+            {
+                get => _date;
+                set
+                {
+                    CheckDateFormat(value);
+                    _date = value;
+                }
+            }
+
+            private IEnumerable<string> _scores;
+
+            [Option('s', "scores", Required = true, HelpText = "List of userxtid=score pairs")]
+            public IEnumerable<string> Scores
+            {
+                get => _scores;
+                set
+                {
+                    if (value == null)
+                        throw new ArgumentNullException(nameof(Scores));
+
+                    var pattern = new Regex(@"^[a-zA-Z0-9_-]+=\d+$");
+
+                    foreach (var item in value)
+                    {
+                        if (!pattern.IsMatch(item))
+                        {
+                            throw new ArgumentException(
+                                $"Invalid score entry '{item}'. Expected format: userxtid=score (e.g., driver123=42)"
+                            );
+                        }
+                    }
+
+                    if (value.Count() < 1 || value.Count() > 50)
+                    {
+                        throw new ArgumentOutOfRangeException(
+                            nameof(Scores),
+                            $"Scores must contain between 1 and 50 items (got {value.Count()})."
+                        );
+                    }
+                    _scores = value.ToList();
+                }
+            }
+        }
+
+        [Verb("finalize-scores", HelpText = "finalize scores for a given day and metric")]
+        class CmdFinalizeScores
+        {
+            [Value(0, MetaName = "metric", Required = true)]
+            public string Metric { get; set; }
+
+            private string _date;
+
+            [Value(1, MetaName = "date", Required = true)]
+            public string Date
+            {
+                get => _date;
+                set
+                {
+                    CheckDateFormat(value);
+                    _date = value;
+                }
+            }
+        }
+
         public class St18JsonConverter : JsonConverter
         {
             public override bool CanConvert(Type rty)
@@ -1327,6 +1445,7 @@ namespace Icmr.Samples.Integration
                         CmdDeleteDbox cmddeletedbox => DeleteDbox(lf, igr, cmddeletedbox),
                         CmdUploadDbox cmduploaddbox => UploadDbox(lf, igr, cmduploaddbox),
                         CmdMoveDbox cmdmovedbox => MoveDbox(lf, igr, cmdmovedbox),
+                        CmdUploadScores cmdUploadScores => UploadScores(lf, igr, cmdUploadScores),
                         _ => Task.FromResult(1)
                     };
                     task.Wait();

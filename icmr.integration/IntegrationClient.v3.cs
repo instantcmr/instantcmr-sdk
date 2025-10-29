@@ -1,15 +1,17 @@
-﻿using System;
+﻿using Icmr.Integration.MimeTypes;
+using Icmr.Integration.v3.Api;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO;
-using Icmr.Integration.v3.Api;
-using System.Collections.Generic;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json;
-using System.Net.Http.Headers;
-using Icmr.Integration.MimeTypes;
+using System.Xml.Linq;
 
 namespace Icmr.Integration.v3
 {
@@ -51,7 +53,8 @@ namespace Icmr.Integration.v3
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
-        public enum Kstan {
+        public enum Kstan
+        {
             ld,
             ul,
             h,
@@ -72,7 +75,7 @@ namespace Icmr.Integration.v3
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
-        public enum Krole { driver, disp, rev, dia, admin, iep, chedit, chadmin }
+        public enum Krole { driver, disp, rev, dia, admin, iep, chedit, campaignadmin, chadmin }
 
         public class Dub<T>
         {
@@ -233,12 +236,24 @@ namespace Icmr.Integration.v3
                 $"lic {kid}";
         }
 
-        public class Dubusermeta
+        public class UsermetaFull
         {
             public string ostEmployeeId;
             public string ostVoicePhone;
             public string ostHaulerPlate;
             public string ostTrailerPlate;
+            public DubProfileValue[] extraValues;
+            public override string ToString() =>
+                $"ostEmployeeId {ostEmployeeId} ostVoicePhone {ostVoicePhone} ostHaulerPlate {ostHaulerPlate} ostTrailerPlate {ostTrailerPlate} extraValues {extraValues?.StJoin()}";
+        }
+
+        public class DubProfileValue
+        {
+            public string name;
+            public string value;
+            public DateOnly? expiresAt;
+            public override string ToString() =>
+                $"name {name} value {value} expiresAt {expiresAt}";
         }
 
         public class Dubdbox
@@ -257,20 +272,20 @@ namespace Icmr.Integration.v3
             public string ouid;
             public string usern;
             public Dubulic[] rgulic;
-            public Dubusermeta usermeta;
+            public UsermetaFull usermeta;
             public Dubdbox dbox;
             public Krole[] rgkrole;
             public string[] rgtripxtid;
 
             public override string ToString() =>
-                $"user {copid}:{ouid}:{userxtid} name {usern} devices {rgulic.StJoin()} roles {rgkrole.StJoin()} dbox {dbox} trips {rgtripxtid.StJoin()}";
+                $"user {copid}:{ouid}:{userxtid} name {usern} devices {rgulic.StJoin()} roles {rgkrole.StJoin()} dbox {dbox} trips {rgtripxtid.StJoin()} usermeta {usermeta}";
         }
 
         public class Dubboma
         {
             public string userxtid;
             public string usern;
-            public Dubusermeta usermeta;
+            public UsermetaSimple usermeta;
             public string colBg;
             public Wetag<DateTime> owetagdtuSync;
             public Wetag<DateTime> owetagdtuRead;
@@ -281,7 +296,7 @@ namespace Icmr.Integration.v3
         {
             public string userxtid;
             public string usern;
-            public Dubusermeta usermeta;
+            public UsermetaSimple usermeta;
             public string colBg;
         }
 
@@ -297,7 +312,7 @@ namespace Icmr.Integration.v3
             public class Roce { }
             public class Tise { public string ostTitle; }
             public class Usad { public string[] rguserxtid; }
-            public class Uski{ public string[] rguserxtid; }
+            public class Uski { public string[] rguserxtid; }
             public class Usmu { public string[] rguserxtid; }
             public class Usum { public string[] rguserxtid; }
         }
@@ -381,9 +396,9 @@ namespace Icmr.Integration.v3
             public Cufis cufis;
         }
 
-        public class Tripeu : Tripe {}
+        public class Tripeu : Tripe { }
 
-        public class Triped: Tripe
+        public class Triped : Tripe
         {
             public DateTime dtuCreate;
             public DateTime? odtuMfc;
@@ -406,27 +421,27 @@ namespace Icmr.Integration.v3
 
         public interface Ev
         {
-            public class Byte: Ev               {public byte v;}
-            public class Short: Ev              {public short v;}
-            public class Int: Ev                {public int v;}
-            public class Long: Ev               {public long v;}
-            public class Float: Ev              {public float v;}
-            public class Double: Ev             {public double v;}
-            public class Boolean: Ev            {public bool v;}
-            public class String: Ev             {public string v;}
-            public class Char: Ev               {public char v;}
-            public class ByteArray: Ev          {public byte[] v;}
-            public class ShortArray: Ev         {public short[] v;}
-            public class IntArray: Ev           {public int[] v;}
-            public class LongArray: Ev          {public long[] v;}
-            public class FloatArray: Ev         {public float[] v;}
-            public class DoubleArray: Ev        {public double[] v;}
-            public class BooleanArray: Ev       {public bool[] v;}
-            public class StringArray: Ev        {public string[] v;}
-            public class CharArray: Ev          {public char[] v;}
-            public class IntegerArrayList : Ev  {public int[] v;}
-            public class StringArrayList : Ev   {public string[] v;}
-            public class Json: Ev               {public object v;}
+            public class Byte : Ev { public byte v; }
+            public class Short : Ev { public short v; }
+            public class Int : Ev { public int v; }
+            public class Long : Ev { public long v; }
+            public class Float : Ev { public float v; }
+            public class Double : Ev { public double v; }
+            public class Boolean : Ev { public bool v; }
+            public class String : Ev { public string v; }
+            public class Char : Ev { public char v; }
+            public class ByteArray : Ev { public byte[] v; }
+            public class ShortArray : Ev { public short[] v; }
+            public class IntArray : Ev { public int[] v; }
+            public class LongArray : Ev { public long[] v; }
+            public class FloatArray : Ev { public float[] v; }
+            public class DoubleArray : Ev { public double[] v; }
+            public class BooleanArray : Ev { public bool[] v; }
+            public class StringArray : Ev { public string[] v; }
+            public class CharArray : Ev { public char[] v; }
+            public class IntegerArrayList : Ev { public int[] v; }
+            public class StringArrayList : Ev { public string[] v; }
+            public class Json : Ev { public object v; }
         }
 
         public class Inspe
@@ -440,10 +455,10 @@ namespace Icmr.Integration.v3
 
         public interface Buta
         {
-            public class Sync : Buta {}
-            public class Triplist : Buta {}
-            public class Roomlist : Buta {}
-            public class Dbox : Buta {}
+            public class Sync : Buta { }
+            public class Triplist : Buta { }
+            public class Roomlist : Buta { }
+            public class Dbox : Buta { }
 
             public class Docr : Buta
             {
@@ -535,7 +550,7 @@ namespace Icmr.Integration.v3
             public Bomaeu[] rgboma;
         }
 
-        public class Usermeta
+        public class UsermetaSimple
         {
             public string ostEmployeeId;
             public string ostVoicePhone;
@@ -548,7 +563,7 @@ namespace Icmr.Integration.v3
         {
             public string userxtid;
             public string usern;
-            public Usermeta usermeta;
+            public UsermetaSimple usermeta;
             public string colBg;
             public Wetag<DateTime> owetagdtuSync;
             public Wetag<DateTime> owetagdtuRead;
@@ -560,7 +575,7 @@ namespace Icmr.Integration.v3
             public string etagpostLast;
             public string userxtid;
             public string usern;
-            public Usermeta usermeta;
+            public UsermetaSimple usermeta;
             public string colBg;
             public Wetag<DateTime> owetagdtuRead;
         }
@@ -601,7 +616,8 @@ namespace Icmr.Integration.v3
             public class Usum { public string[] rguserxtid; }
         }
 
-        public interface Payp {
+        public interface Payp
+        {
             public class Update : Payp { public Roup roup; }
             public class Msg : Payp { public string st; }
         }
@@ -701,6 +717,29 @@ namespace Icmr.Integration.v3
             public string userxtid;
             public string pat;
         }
+
+
+        public class GamificationScores
+        {
+            public string date;
+            public string metric;
+            public GamificationScore[] scores;
+
+        }
+
+        public class GamificationScore
+        {
+            public string userxtid;
+            public int score;
+
+        }
+
+        public class GamificationFinalizeScores
+        {
+            public string date;
+            public string metric;
+
+        }
     }
 
     static class WetagU
@@ -712,6 +751,7 @@ namespace Icmr.Integration.v3
                 v = await response.Extract<T>()
             };
     }
+
 
     public class IntegrationClient
     {
@@ -929,16 +969,40 @@ namespace Icmr.Integration.v3
         public async Task MoveDboxAsync(string userxtid, string patSrc, string patDst, CancellationToken ctok) =>
             await httpc.SendAsync(
                 new HttpRequestMessage(
-                    HttpMethod.Put, 
+                    HttpMethod.Put,
                     $"./dbox/{copid.Uri()}/{userxtid.Uri()}/mv/{patSrc.UriFromPathSegments(true)}"
                 )
-                .WithJsonContent(new Filta {userxtid = userxtid, pat = patDst}, l)
+                .WithJsonContent(new Filta { userxtid = userxtid, pat = patDst }, l)
             )
             .Timeout_Pkludge(ctok)
             .EnsureValid();
 
         public async Task DeleteDboxAsync(string userxtid, string pat, CancellationToken ctok) =>
             await httpc.DeleteAsync($"./dbox/{copid.Uri()}/{userxtid.Uri()}/fil/{pat.UriFromPathSegments(true)}", ctok)
+            .Timeout_Pkludge(ctok)
+            .EnsureValid();
+
+
+        public async Task UploadScoresAsync(string metric, string date, GamificationScore[] scores, CancellationToken ctok) =>
+            await httpc.SendAsync(
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    $"./gamification/{copid.Uri()}/scores"
+                )
+                .WithJsonContent(new GamificationScores{metric=metric, date=date, scores=scores}, l)
+            )
+            .Timeout_Pkludge(ctok)
+            .EnsureValid();
+
+
+        public async Task FinalizeScoresAsync(string metric, string date, CancellationToken ctok) =>
+            await httpc.SendAsync(
+                new HttpRequestMessage(
+                    HttpMethod.Post,
+                    $"./gamification/{copid.Uri()}/scores/finalize"
+                )
+                .WithJsonContent(new GamificationFinalizeScores{date=date, metric=metric}, l)
+            )
             .Timeout_Pkludge(ctok)
             .EnsureValid();
     }

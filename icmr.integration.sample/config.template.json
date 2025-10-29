@@ -1,0 +1,9 @@
+﻿{
+  "dpatRoot": "./downloads/",
+  "kid": "<your kid>",
+  "shs": "<your shs>",
+  "loglevel": "VERBOSE",
+  "copid": "<your copid>",
+  "iepn": "<your endpoint name>",
+  "url": "https://beta-api.instantcmr.com/v3/igr/"
+}
