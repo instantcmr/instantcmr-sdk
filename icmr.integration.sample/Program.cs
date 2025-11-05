@@ -988,7 +988,7 @@ namespace Icmr.Samples.Integration
             await l.RunWithRetry(ctok, () => igr.UploadScoresAsync(cmd.Metric, cmd.Date, scores.ToArray(), ctok));
         }
 
-        static async Task FinalizeScores(Lf lf, v3.IntegrationClient igr, CmdUploadScores cmd)
+        static async Task FinalizeScores(Lf lf, v3.IntegrationClient igr, CmdFinalizeScores cmd)
         {
 
             var l = lf.L<IntegrationSample>();
@@ -1446,6 +1446,7 @@ namespace Icmr.Samples.Integration
                         CmdUploadDbox cmduploaddbox => UploadDbox(lf, igr, cmduploaddbox),
                         CmdMoveDbox cmdmovedbox => MoveDbox(lf, igr, cmdmovedbox),
                         CmdUploadScores cmdUploadScores => UploadScores(lf, igr, cmdUploadScores),
+                        CmdFinalizeScores cmdFinalizeScores => FinalizeScores(lf, igr, cmdFinalizeScores),
                         _ => Task.FromResult(1)
                     };
                     task.Wait();
