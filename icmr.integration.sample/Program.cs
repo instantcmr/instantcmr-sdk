@@ -566,7 +566,7 @@ namespace Icmr.Samples.Integration
                 try
                 {
                     await l.RunWithRetry(ctok, () => igr.DeleteScrenAsync(userxtid, ctok, oetag));
-
+                    return;
                 }
                 catch (ErHttp er) when (er.cod == 412)
                 {
@@ -579,7 +579,7 @@ namespace Icmr.Samples.Integration
                     catch (ErHttp erT) when (erT.cod == 404)
                     {
                         l.W("scren already removed, giving up");
-
+                        return;
                     }
                 }
             }
@@ -1103,9 +1103,8 @@ namespace Icmr.Samples.Integration
             [Option('t', Default = null, HelpText = "Discussion topic title ('~' to remove)")]
             public string OstTitle { get; set; }
 
-            // QQQ: array
-            [Option('u', Default = new string[0], HelpText = "List of members to add to or remove from the room (coma separated list of userxtids, prepend with '+' to add unmuted, '!' to add muted or '~' to remove)")]
-            public string[] Rguserxtid { get; set; }
+            [Option('u', Default = new string[0], HelpText = "Members to add to or remove from the room (list of userxtids, prepend with '+' to add unmuted, '!' to add muted or '~' to remove)")]
+            public IEnumerable<string> Rguserxtid { get; set; }
 
             [Option('o', Default = null, HelpText = "Write updated json into file")]
             public string OfpatOut { get; set; }
