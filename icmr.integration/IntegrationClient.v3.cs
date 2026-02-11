@@ -75,7 +75,7 @@ namespace Icmr.Integration.v3
         }
 
         [JsonConverter(typeof(StringEnumConverter))]
-        public enum Krole { driver, disp, rev, dia, admin, iep, chedit, campaignadmin, chadmin }
+        public enum Krole { driver, disp, rev, dia, admin, iep, chedit, campaignadmin, chadmin, faqadmin }
 
         public class Dub<T>
         {
