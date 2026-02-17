@@ -5,5 +5,5 @@
   "loglevel": "VERBOSE",
   "copid": "<your copid>",
   "iepn": "<your endpoint name>",
-  "url": "https://beta-api.instantcmr.com/v3/igr/"
+  "url": "https://beta.instantcmr.com/v3/igr/"
 }

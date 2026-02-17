@@ -295,6 +295,7 @@ namespace Icmr.Samples.Integration
                 name = profileValue.name,
                 value = profileValue.value,
                 expiresAt = profileValue.expiresAt,
+                iconId = profileValue.iconId,
             };
         public static Dbox decode(this Api.Dubdbox dbox) =>
             new Dbox
@@ -1207,13 +1208,15 @@ namespace Icmr.Samples.Integration
         public string name;
         public string value;
         public DateOnly? expiresAt;
+        public string iconId;
         public override string ToString() =>
-            $"name {name} value {value} expiresAt {expiresAt}";
+            $"name {name} value {value} expiresAt {expiresAt} iconId {iconId}";
         public class B : Builder
         {
             public B withName(string name) => this.Also(b => t.name = name);
             public B withValue(string value) => this.Also(b => t.value = value);
             public B withExpiresAt(DateOnly? expiresAt) => this.Also(b => t.expiresAt = expiresAt);
+            public B withIconId(string iconId) => this.Also(b => t.iconId = iconId);
         }
     }
 

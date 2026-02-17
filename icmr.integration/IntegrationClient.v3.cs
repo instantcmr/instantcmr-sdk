@@ -252,8 +252,9 @@ namespace Icmr.Integration.v3
             public string name;
             public string value;
             public DateOnly? expiresAt;
+            public string iconId;
             public override string ToString() =>
-                $"name {name} value {value} expiresAt {expiresAt}";
+                $"name {name} value {value} expiresAt {expiresAt} iconId {iconId}";
         }
 
         public class Dubdbox
