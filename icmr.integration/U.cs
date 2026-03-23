@@ -254,6 +254,7 @@ namespace Icmr.Integration
                     .RegisterSubtype(typeof(Api.Buta.Dbox), "dbox")
                     .RegisterSubtype(typeof(Api.Buta.Docr), "docr")
                     .RegisterSubtype(typeof(Api.Buta.LaunchActivity), "launchactivity")
+                    .RegisterSubtype(typeof(Api.Buta.Faq), "faq")
                     .SerializeDiscriminatorProperty()
                     .Build(),
                 JsonSubtypesConverterBuilder

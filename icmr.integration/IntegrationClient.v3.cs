@@ -470,6 +470,8 @@ namespace Icmr.Integration.v3
             {
                 public Inspe inspe;
             }
+
+            public class Faq : Buta { }
         }
 
         public class Ptd

@@ -417,6 +417,7 @@ namespace Icmr.Samples.Integration
             Api.Buta.Dbox _ => new Buta.Dbox { },
             Api.Buta.Docr docr => new Buta.Docr { kdocr = docr.kdocr },
             Api.Buta.LaunchActivity la => new Buta.LaunchActivity { inspe = la.inspe.decode() },
+            Api.Buta.Faq _ => new Buta.Faq { },
             _ => throw new Exception($"unknown buta {buta.GetType().FullName}"),
         };
         public static Api.Buta encode(this Buta buta) => buta switch
@@ -427,6 +428,7 @@ namespace Icmr.Samples.Integration
             Buta.Dbox _ => new Api.Buta.Dbox { },
             Buta.Docr docr => new Api.Buta.Docr { kdocr = docr.kdocr },
             Buta.LaunchActivity la => new Api.Buta.LaunchActivity { inspe = la.inspe.encode() },
+            Buta.Faq _ => new Api.Buta.Faq { },
             _ => throw new Exception($"unknown buta {buta.GetType().FullName}"),
         };
 
@@ -1437,6 +1439,7 @@ namespace Icmr.Samples.Integration
         {
             public Inspe inspe;
         }
+        public class Faq : Buta { }
     }
 
     public class Ptd: Buildable<Ptd, Ptd.B> {
