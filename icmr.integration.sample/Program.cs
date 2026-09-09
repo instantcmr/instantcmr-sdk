@@ -38,7 +38,25 @@ namespace Icmr.Samples.Integration
                     return json.Deserialize<T>(jsonr);
             }
 
-            public T ReadFile<T>(string fpat) where T : class => OreadFile<T>(fpat).Require(() => new Exception($"file {fpat} does not exist"));
+            public T ReadFile<T>(string fpat) where T : class
+            {
+                T value;
+                try
+                {
+                    value = OreadFile<T>(fpat).Require(() => new Exception($"file {fpat} does not exist"));
+                }
+                catch (JsonReaderException er)
+                {
+                    throw new Exception($"invalid JSON syntax in '{fpat}' at line {er.LineNumber}, column {er.LinePosition}, path '{er.Path}': {er.Message}", er);
+                }
+                catch (JsonSerializationException er)
+                {
+                    throw new Exception($"cannot read JSON data from '{fpat}': {er.Message}", er);
+                }
+
+                JsonValidation.Validate(value, fpat);
+                return value;
+            }
 
             public void WriteFile<T>(string fpat, T data) where T : class
             {
@@ -1449,7 +1467,11 @@ namespace Icmr.Samples.Integration
                         CmdFinalizeScores cmdFinalizeScores => FinalizeScores(lf, igr, cmdFinalizeScores),
                         _ => Task.FromResult(1)
                     };
-                    task.Wait();
+                    task.GetAwaiter().GetResult();
+                }
+                catch (JsonValidationException er)
+                {
+                    l.E(er.Message);
                 }
                 catch (Exception er)
                 {

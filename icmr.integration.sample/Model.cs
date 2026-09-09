@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Icmr.Integration;
 using Api = Icmr.Integration.v3.Api;
@@ -951,7 +952,9 @@ namespace Icmr.Samples.Integration
 
     public class Docrref : Buildable<Docrref, Docrref.B>
     {
+        [NotNull]
         public string docrid;
+        [NotNull]
         public string tripxtid;
         
         public class B : Builder
@@ -963,11 +966,15 @@ namespace Icmr.Samples.Integration
 
     public class Docr : Buildable<Docr, Docr.B>, IKeyed<string>
     {
+        [NotNull]
         public string docrid;
+        [NotNull]
         public DateTime dtuRequest;
+        [NotNull]
         public Api.Kdocr kdocr;
         public string ostShortName;
         public string ostDesc;
+        [NotNull]
         public bool fRequired;
         public bool? ofDeleted;
 
@@ -987,12 +994,15 @@ namespace Icmr.Samples.Integration
 
     public class Stan : Buildable<Stan, Stan.B>, IKeyed<string>
     {
+        [NotNull]
         public string stanxtid;
+        [NotNull]
         public Api.Kstan kstan;
         public DateTime? odtu;
         public string ostAddress;
         public string ostNotes;
         public double? okmDistance;
+        [NotNull]
         public Cufis cufis;
         public string ostSortBy;
         public bool? ofDeleted;
@@ -1055,8 +1065,11 @@ namespace Icmr.Samples.Integration
 
     public class Redoim : Buildable<Redoim, Redoim.B>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public DateTime dtu;
+        [NotNull]
         public Api.Kredosu kredosu;
 
         public override string ToString() => $"redoim {kredosu} on {dtu.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff} by {userxtid}";
@@ -1071,8 +1084,11 @@ namespace Icmr.Samples.Integration
 
     public class Doed : Buildable<Doed, Doed.B>
     {
+        [NotNull]
         public string doedid;
+        [NotNull]
         public DateTime dtu;
+        [NotNull]
         public string userxtid;
 
         public override string ToString() => $"doed {doedid} on {dtu.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff} by {userxtid}";
@@ -1087,6 +1103,7 @@ namespace Icmr.Samples.Integration
 
     public class Dosuimg : Buildable<Dosuimg, Dosuimg.B>, IKeyed<string>
     {
+        [NotNull]
         public string imgid;
         public Redoim oredoim;
         public Doed odoed;
@@ -1104,16 +1121,26 @@ namespace Icmr.Samples.Integration
 
     public class Dosu : Buildable<Dosu, Dosu.B>, IKeyed<string>
     {
+        [NotNull]
         public string dosuxtid;
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public string copid;
+        [NotNull]
         public string ouid;
+        [NotNull]
         public Api.Kdocr kdocr;
         public Docrref odocr;
+        [NotNull]
         public DateTime dtuSubmit;
+        [NotNull]
         public DateTime dtuUpload;
+        [NotNull]
         public string loc;
+        [NotNull]
         public Dosumeta dosumeta;
+        [NotNull]
         public Dosuimg[] rgimg;
 
         string IKeyed<string>.Key => dosuxtid;
@@ -1140,6 +1167,7 @@ namespace Icmr.Samples.Integration
 
     public class Ulic : Buildable<Ulic, Ulic.B>, IKeyed<string>
     {
+        [NotNull]
         public string kid;
         public string ostDeviceModel;
         public string ostDeviceImei;
@@ -1190,6 +1218,7 @@ namespace Icmr.Samples.Integration
         public string ostVoicePhone;
         public string ostHaulerPlate;
         public string ostTrailerPlate;
+        [NotNull]
         public ProfileValue[] extraValues;
 
         public override string ToString() =>
@@ -1207,9 +1236,12 @@ namespace Icmr.Samples.Integration
 
     public class ProfileValue : Buildable<ProfileValue, ProfileValue.B>
     {
+        [NotNull]
         public string name;
+        [NotNull]
         public string value;
         public DateOnly? expiresAt;
+        [NotNull]
         public string iconId;
         public override string ToString() =>
             $"name {name} value {value} expiresAt {expiresAt} iconId {iconId}";
@@ -1224,6 +1256,7 @@ namespace Icmr.Samples.Integration
 
     public class Dbox: Buildable<Dbox, Dbox.B>
     {
+        [NotNull]
         public string[] rguserxtidFollow;
         public string oshrn;
 
@@ -1239,14 +1272,23 @@ namespace Icmr.Samples.Integration
 
     public class User : Buildable<User, User.B>, IKeyed<string>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public string copid;
+        [NotNull]
         public string ouid;
+        [NotNull]
         public string usern;
+        [NotNull]
         public Ulic[] rgulic;
+        [NotNull]
         public UsermetaFull usermeta;
+        [NotNull]
         public Dbox dbox;
+        [NotNull]
         public Api.Krole[] rgkrole;
+        [NotNull]
         public string[] rgtripxtid;
 
         string IKeyed<string>.Key => userxtid;
@@ -1270,7 +1312,9 @@ namespace Icmr.Samples.Integration
 
     public class Wetag<T> : Buildable<Wetag<T>, Wetag<T>.B>
     {
+        [NotNull]
         public string etag;
+        [NotNull]
         public T value;
 
         public override string ToString() => $"{typeof(T).Name}:{Maybe.OfNullable(value as IKeyed<string>).Map(keyed => keyed.Key).OrElse("<unknown-key>")}:{Maybe.OfNullable(etag).OrElse("<none>")}";
@@ -1285,9 +1329,13 @@ namespace Icmr.Samples.Integration
 
     public class Rut : Buildable<Rut, Rut.B>, IKeyed<string>
     {
+        [NotNull]
         public string rutid;
+        [NotNull]
         public string fpat;
+        [NotNull]
         public long cb;
+        [NotNull]
         public DateTime dtuUpload;
 
         string IKeyed<string>.Key => rutid;
@@ -1304,6 +1352,7 @@ namespace Icmr.Samples.Integration
 
     public class Ruts : Buildable<Ruts, Ruts.B>
     {
+        [NotNull]
         public Rut[] rgrut;
 
         public override string ToString() => $"ruts with {rgrut.Length} files";
@@ -1316,8 +1365,11 @@ namespace Icmr.Samples.Integration
 
     public class Cufi : Buildable<Cufi, Cufi.B>, IKeyed<string>
     {
+        [NotNull]
         public string id;
+        [NotNull]
         public string n;
+        [NotNull]
         public string v;
 
         string IKeyed<string>.Key => id;
@@ -1333,6 +1385,7 @@ namespace Icmr.Samples.Integration
 
     public class Cufis: Buildable<Cufis, Cufis.B>
     {
+        [NotNull]
         public Cufi[] rgcufi;
 
         public override string ToString() => $"cufis {rgcufi.Select(cufi => cufi.ToString()).StJoin(", ")}";
@@ -1345,18 +1398,28 @@ namespace Icmr.Samples.Integration
 
     public class Trip : Buildable<Trip, Trip.B>, IKeyed<string>
     {
+        [NotNull]
         public string tripxtid;
+        [NotNull]
         public string ouid;
+        [NotNull]
         public Api.Ktroc ktroc;
         public string ostSortBy;
+        [NotNull]
         public DateTime dtuCreate;
         public DateTime? odtuMfc;
+        [NotNull]
         public Tripmeta tripmeta;
         public string ouserxtidDriver;
+        [NotNull]
         public Docr[] rgdocr;
+        [NotNull]
         public Stan[] rgstan;
+        [NotNull]
         public Dosu[] rgdosu;
+        [NotNull]
         public Ruts ruts;
+        [NotNull]
         public Cufis cufis;
 
         string IKeyed<string>.Key => tripxtid;
@@ -1381,7 +1444,9 @@ namespace Icmr.Samples.Integration
 
     public class Compn : Buildable<Compn, Compn.B>
     {
+        [NotNull]
         public string packagen;
+        [NotNull]
         public string classn;
         public class B : Builder {}
     }
@@ -1432,25 +1497,31 @@ namespace Icmr.Samples.Integration
         public class Dbox: Buta {}
         public class Docr : Buta
         {
+            [NotNull]
             public Api.Kdocr kdocr;
         }
 
         public class LaunchActivity : Buta 
         {
+            [NotNull]
             public Inspe inspe;
         }
         public class Faq : Buta { }
     }
 
     public class Ptd: Buildable<Ptd, Ptd.B> {
+        [NotNull]
         public float x;
+        [NotNull]
         public float y;
 
         public class B : Builder {}
     }
 
     public class Szd: Buildable<Szd, Szd.B> {
+        [NotNull]
         public float dx;
+        [NotNull]
         public float dy;
         public class B : Builder {}
     }
@@ -1461,23 +1532,28 @@ namespace Icmr.Samples.Integration
 
         public class Fixed: Krund
         {
+            [NotNull]
             public float dp;
         }
 
         public class Relative: Krund
         {
+            [NotNull]
             public int percent;
         }
 
         public class Unit: Krund
         {
+            [NotNull]
             public float u;
         }
     }
 
     public class St18: Buildable<St18, St18.B>
     {
+        [NotNull]
         public string stDefault;
+        [NotNull]
         public Dictionary<string, string> mpstByLocale;
         public class B : Builder {}
     }
@@ -1493,6 +1569,7 @@ namespace Icmr.Samples.Integration
 
     public class Notd: Buildable<Notd, Notd.B>, IKeyed<string>
     {
+        [NotNull]
         public string notid;
         public St18 ost18Message;
         public int? ocBadge;
@@ -1502,17 +1579,24 @@ namespace Icmr.Samples.Integration
 
     public class Mbut: Buildable<Mbut, Mbut.B>
     {
+        [NotNull]
         public Buta buta;
+        [NotNull]
         public Ptd ptd;
+        [NotNull]
         public Szd szd;
+        [NotNull]
         public Busty busty;
+        [NotNull]
         public Notd[] rgnotd;
         public class B : Builder {}
     }
 
     public class Scren: Buildable<Scren, Scren.B>, IKeyed<string>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public Mbut[] rgmbut;
         string IKeyed<string>.Key => userxtid;
         public class B : Builder {
@@ -1522,7 +1606,9 @@ namespace Icmr.Samples.Integration
 
     public class Rover: Buildable<Rover, Rover.B>
     {
+        [NotNull]
         public Wetag<DateTime> wetagdturoom;
+        [NotNull]
         public Wetag<DateTime> wetagdtupost;
 
         public class B: Builder
@@ -1534,12 +1620,17 @@ namespace Icmr.Samples.Integration
 
     public class Boma: Buildable<Boma, Boma.B>, IKeyed<string>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public string usern;
+        [NotNull]
         public UsermetaSimple usermeta;
+        [NotNull]
         public string colBg;
         public Wetag<DateTime> owetagdtuSync;
         public Wetag<DateTime> owetagdtuRead;
+        [NotNull]
         public bool fMuted;
 
         string IKeyed<string>.Key => userxtid;
@@ -1558,9 +1649,13 @@ namespace Icmr.Samples.Integration
 
     public class Bomath: Buildable<Bomath, Bomath.B>, IKeyed<string>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public string usern;
+        [NotNull]
         public UsermetaSimple usermeta;
+        [NotNull]
         public string colBg;
 
         string IKeyed<string>.Key => userxtid;
@@ -1603,10 +1698,15 @@ namespace Icmr.Samples.Integration
 
     public class Post: Buildable<Post, Post.B>, IKeyed<string>
     {
+        [NotNull]
         public string postxtid;
+        [NotNull]
         public string etagpost;
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public DateTime dtu;
+        [NotNull]
         public Payp payp;
 
         string IKeyed<string>.Key => etagpost;
@@ -1623,7 +1723,9 @@ namespace Icmr.Samples.Integration
 
     public class Posteu: Buildable<Posteu, Posteu.B>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public string stMessage;
 
         public class B: Builder
@@ -1635,13 +1737,20 @@ namespace Icmr.Samples.Integration
 
     public class Room: Buildable<Room, Room.B>, IKeyed<string>
     {
+        [NotNull]
         public string roomxtid;
+        [NotNull]
         public string ouxtid;
+        [NotNull]
         public Rover rover;
+        [NotNull]
         public DateTime dtuCreate;
         public string ostTitle;
+        [NotNull]
         public Boma[] rgboma;
+        [NotNull]
         public Bomath[] rgbomath;
+        [NotNull]
         public Post[] rgpost;
 
         public string etagroom => rover.wetagdturoom.etag;
@@ -1681,7 +1790,9 @@ namespace Icmr.Samples.Integration
 
     public class Bomaeu: Buildable<Bomaeu, Bomaeu.B>, IKeyed<string>
     {
+        [NotNull]
         public string userxtid;
+        [NotNull]
         public bool fMuted;
         string IKeyed<string>.Key => userxtid;
 
@@ -1694,8 +1805,10 @@ namespace Icmr.Samples.Integration
 
     public class Roomeu: Buildable<Roomeu, Roomeu.B>
     {
+        [NotNull]
         public string ouxtid;
         public string ostTitle;
+        [NotNull]
         public Bomaeu[] rgbomaeu;
 
         public class B: Builder
